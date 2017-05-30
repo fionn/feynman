@@ -2,67 +2,73 @@
 
 from itertools import combinations_with_replacement as combine
 import random
+from particles import Particle, particles_list
 
-class Particle():
-
-    def __init__(self, particle):
-        self.name = particle
-        self.charge = self._charge(particle)
-        self.lepton = self._lepton(particle)
-        self.statistics = self._statistics(particle)
-
-    def _charge(self, particle):
-        charge_dict = {'electron': -1, 'positron': 1, 'photon': 0}
-        return charge_dict[particle]
-
-
-    def _lepton(self, particle):
-        lepton_dict = {'electron': 1, 'positron': -1, 'photon': 0}
-        return lepton_dict[particle]
-
-
-    def _statistics(self, particle):
-        stat_dict = {'electron': 'fermion',
-                     'positron': 'fermion', 
-                     'photon': 'boson'}
-        return stat_dict[particle]
-
-
-PARTICLES = (Particle('electron'), 
-             Particle('positron'), 
-             Particle('photon'))
+PARTICLES = particles_list()
 
 
 def vertex_conservation(particles):
+    # return list of things which should be invariant across this vertex
+    
     lepton_number = sum([p.lepton for p in particles])
     charge = sum([p.charge for p in particles])
 
     return [charge, lepton_number]
 
 
-def vertex_outputs(constraints, n_out):
+def vertex_outputs(p_in, constraints, n_out):
+    # get the outputs from a vertex subject to
+    #   * no trivial verts: output != input
+    #	* keep invariants invariant
+    #   * return n_out particles, if possible
+
     pairs = combine(PARTICLES, n_out)
     allowed_pairs = []
 
     for p in pairs:
-        if vertex_conservation(p) == constraints:
-            allowed_pairs.append(p)
+        if ((vertex_conservation(p) == constraints) and 
+            (set(p_names(p)) != set(p_names(p_in)))):
+           
+             allowed_pairs.append(p)
 
-    return allowed_pairs
+    return allowed_pairs if len(allowed_pairs) > 0 else None
+
+
+def make_diagram(p_in, n_vertices, structure):
+    # make diagram given input particles,
+    # the number of vertices expected &
+    # the number of particles we want out at each vertex (randomly chosen)
+
+    p_out = [p_in]
+
+    p = p_in
+    for i, n in enumerate(structure):
+        
+        constraint = vertex_conservation(p)
+        allowed_pairs = vertex_outputs(p, constraint, n)
+        p = random.choice(allowed_pairs) 
+        p_out.append(p)
+
+    return p_out 
+
+
+def p_names(particles):
+    # return a list of names
+
+    return [p.name for p in particles]
 
 
 if __name__ == "__main__":
+
     particles = ["electron", "positron"]
-    particles = [Particle(p) for p in particles]
+    particles = tuple([Particle(p) for p in particles])    
 
-    vertices = 2
-    p = particles
-    print([j.name for j in p])
-    for i in range(vertices):
-        constraint = vertex_conservation(p)
-        allowed_pairs = vertex_outputs(constraint, 2)
-        p = random.choice(allowed_pairs)
-        print([j.name for j in p])
 
-    output = list(particles)
+    vertices = 2 # no. of vertices
+    structure = [1, 2] # no of particles output from each vertex
+
+    diagram = make_diagram(particles, vertices, structure)
+    for i, v in enumerate(diagram):
+        print('Vertex {}:'.format(i))
+        print(p_names(v))
 
