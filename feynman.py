@@ -2,73 +2,72 @@
 
 from itertools import combinations_with_replacement as combine
 import random
-from particles import Particle, particles_list
+import particle
 
-PARTICLES = particles_list()
+PARTICLE_MAP = particle.Factory.particle_map
 
+# TODO: This is hard to reason about. Let's rewrite and have something  like a
+#       Vertex class that contains conservation laws, etc.
+#       It's also broken -- sorry.
 
 def vertex_conservation(particles):
-    # return list of things which should be invariant across this vertex
-    
+    """returns a list of values invariant across this vertex"""
     lepton_number = sum([p.lepton for p in particles])
     charge = sum([p.charge for p in particles])
-
     return [charge, lepton_number]
 
-
 def vertex_outputs(p_in, constraints, n_out):
-    # get the outputs from a vertex subject to
-    #   * no trivial verts: output != input
-    #	* keep invariants invariant
-    #   * return n_out particles, if possible
-
-    pairs = combine(PARTICLES, n_out)
+    """
+    get the outputs from a vertex subject to:
+    * no trivial verts: output != input
+    * keep invariants invariant
+    * return n_out particles, if possible
+    """
+    pairs = combine(PARTICLE_MAP.values(), n_out)
     allowed_pairs = []
 
-    for p in pairs:
-        if ((vertex_conservation(p) == constraints) and 
+    for particle in pairs:
+        print(particle)
+        if ((vertex_conservation(p) == constraints) and
             (set(p_names(p)) != set(p_names(p_in)))):
-           
              allowed_pairs.append(p)
 
-    return allowed_pairs if len(allowed_pairs) > 0 else None
-
+    if len(allowed_pairs) > 0:
+        return allowed_pairs
 
 def make_diagram(p_in, n_vertices, structure):
-    # make diagram given input particles,
-    # the number of vertices expected &
-    # the number of particles we want out at each vertex (randomly chosen)
-
+    """
+    make diagram given input particles,
+    the number of vertices expected &
+    the number of particles we want out at each vertex (randomly chosen)
+    """
     p_out = [p_in]
-
     p = p_in
     for i, n in enumerate(structure):
-        
         constraint = vertex_conservation(p)
         allowed_pairs = vertex_outputs(p, constraint, n)
-        p = random.choice(allowed_pairs) 
+        p = random.choice(allowed_pairs)
         p_out.append(p)
 
-    return p_out 
+    return p_out
 
-
-def p_names(particles):
-    # return a list of names
-
-    return [p.name for p in particles]
-
+def class_list():
+    """Misleading, this returns all particle classes"""
+    particle_list = []
+    for attr in dir(particle):
+        x = getattr(particle, attr)
+        if isinstance(x, type):
+            particle_list.append(x)
+    return particle_list
 
 if __name__ == "__main__":
-
-    particles = ["electron", "positron"]
-    particles = tuple([Particle(p) for p in particles])    
-
+    particles = (particle.Electron(), particle.Positron())
+    print(particles)
 
     vertices = 2 # no. of vertices
     structure = [1, 2] # no of particles output from each vertex
 
     diagram = make_diagram(particles, vertices, structure)
-    for i, v in enumerate(diagram):
-        print('Vertex {}:'.format(i))
-        print(p_names(v))
-
+    #for i, v in enumerate(diagram):
+    #    print('Vertex {}:'.format(i))
+    #    print(p_names(v))
