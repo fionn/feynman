@@ -21,6 +21,9 @@ class Particle(ABC):
         #self.parity = None
         #self.c_parity = None
 
+    def __repr__(self):
+        return self.__class__.__name__
+
     @abstractmethod
     def _instantiated(self):
         # This prevents base classes from accidental
@@ -50,7 +53,7 @@ class GaugeBoson(Particle):
 
     def __init__(self):
         super().__init__()
-        spin = 1
+        self.spin = 1
         self.baryon = 0
         self.lepton = 0
 
@@ -134,7 +137,6 @@ class Electron(Lepton):
         self.antiparticle = Positron
 
     @property
-    #@staticmethod
     def neutrino(self):
         return ElectronNeutrino
 
@@ -146,6 +148,35 @@ class Positron(Electron, Antiparticle):
     def __init__(self):
         super().__init__()
         self.name = "positron"
+        self.symbol = "e^+"
+        self._antiparticle()
+
+    def _instantiated(self):
+        pass
+
+class Muon(Lepton):
+
+    def __init__(self):
+        super().__init__()
+        self.name = "muon"
+        self.symbol = "µ^-"
+        self.charge = -1
+        self.mass = 0.51
+        self.antiparticle = AntiMuon
+
+    @property
+    def neutrino(self):
+        return MuonNeutrino
+
+    def _instantiated(self):
+        pass
+
+class AntiMuon(Muon, Antiparticle):
+
+    def __init__(self):
+        super().__init__()
+        self.name = "antimuon"
+        self.symbol = "µ^+"
         self._antiparticle()
 
     def _instantiated(self):
@@ -178,8 +209,31 @@ class ElectronNeutrino(Neutrino):
 class ElectronAntiNeutrino(Neutrino, Antiparticle):
 
     def __init__(self):
-        super().__init__()
+        super().__init__(Electron())
         self.name = "electron antinutrino"
+        # TODO: overbar
+        self.symbol = "bar " + self.symbol
+        self._antiparticle()
+
+    def _instantiated(self):
+        pass
+
+class MuonNeutrino(Neutrino):
+
+    def __init__(self):
+        super().__init__(Muon())
+        self.antiparticle = MuonAntiNeutrino
+
+    def _instantiated(self):
+        pass
+
+class MuonAntiNeutrino(Neutrino, Antiparticle):
+
+    def __init__(self):
+        super().__init__(Muon())
+        self.name = "muon antinutrino"
+        # TODO: overbar
+        self.symbol = "bar " + self.symbol
         self._antiparticle()
 
     def _instantiated(self):
@@ -187,23 +241,29 @@ class ElectronAntiNeutrino(Neutrino, Antiparticle):
 
 class Factory:
 
-    boson_map = {"photon": Photon,
-                 "Z": Z,
-                 "W^+": WPlus,
-                 "W^-": WMinus,
+    _boson_map = {"photon": Photon,
+                  "Z": Z,
+                  "W^+": WPlus,
+                  "W^-": WMinus,
                  }
 
-    fermion_map = {"electron": Electron,
-                   "positron": Positron,
-                   "electron neutrino": ElectronNeutrino,
-                   "electron antineutrino": ElectronAntiNeutrino
-                  }
+    _fermion_map = {"electron": Electron,
+                    "positron": Positron,
+                    "muon": Muon,
+                    "antimuon": AntiMuon,
+                    "electron neutrino": ElectronNeutrino,
+                    "electron antineutrino": ElectronAntiNeutrino,
+                    "muon neutrino": MuonNeutrino,
+                    "muon antineutrino": MuonAntiNeutrino,
+                   }
 
-    particle_map = {**boson_map, **fermion_map}
+    _particle_map = {**_boson_map, **_fermion_map}
+    particle_instances = {key: value() for key, value in _particle_map.items()}
 
+    @staticmethod
     def create(name):
         try:
-            return ParticleFactory._particle_map[name]
+            return Factory._particle_map[name]
         except KeyError:
             raise NotImplementedError("{}s don't exist yet".format(name))
 
@@ -211,5 +271,4 @@ if __name__ == "__main__":
 
     e = Electron()
     print(isinstance(e.antiparticle(), Positron))
-
 

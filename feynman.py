@@ -1,73 +1,103 @@
 #!/usr/bin/env python3
 
-from itertools import combinations_with_replacement as combine
 import random
+from itertools import combinations_with_replacement as combine
+from collections import namedtuple
+from typing import Tuple
 import particle
 
-PARTICLE_MAP = particle.Factory.particle_map
+PARTICLE_MAP = particle.Factory.particle_instances
 
-# TODO: This is hard to reason about. Let's rewrite and have something  like a
-#       Vertex class that contains conservation laws, etc.
-#       It's also broken -- sorry.
+class Interaction:
 
-def vertex_conservation(particles):
-    """returns a list of values invariant across this vertex"""
-    lepton_number = sum([p.lepton for p in particles])
-    charge = sum([p.charge for p in particles])
-    return [charge, lepton_number]
+    def __init__(self, initial_particles: tuple, vertex_structure: list) -> None:
+        self._particles = initial_particles
+        self._out = initial_particles
+        self._structure = vertex_structure
+        self._invariants = self._vertex_invariants(particles)
+        self._vertex_particles = None
 
-def vertex_outputs(p_in, constraints, n_out):
-    """
-    get the outputs from a vertex subject to:
-    * no trivial verts: output != input
-    * keep invariants invariant
-    * return n_out particles, if possible
-    """
-    pairs = combine(PARTICLE_MAP.values(), n_out)
-    allowed_pairs = []
+    @staticmethod
+    def _vertex_invariants(particles_in: tuple) -> Tuple[int, int]:
+        Invariants = namedtuple("Invariants", ["charge", "lepton"])
+        lepton_number = sum([p.lepton for p in particles_in])
+        charge = sum([p.charge for p in particles_in])
+        return Invariants(charge, lepton_number)
 
-    for particle in pairs:
-        print(particle)
-        if ((vertex_conservation(p) == constraints) and
-            (set(p_names(p)) != set(p_names(p_in)))):
-             allowed_pairs.append(p)
+    def _violates_landau_yang(self, t: tuple) -> bool:
+        if len(self._out) == 1 and len(t) == 2:
+            if isinstance(self._out[0], particle.Z):
+                if isinstance(t[0], particle.Photon) \
+                   and isinstance(t[1], particle.Photon):
+                    return True
+        return False
 
-    if len(allowed_pairs) > 0:
-        return allowed_pairs
+    def _legal_vertex(self, t: tuple) -> bool:
+        if self._vertex_invariants(t) != self._invariants:
+            return False
+        if self._violates_landau_yang(t):
+            return False
+        # TODO: pair production/annihilation
+        return True
 
-def make_diagram(p_in, n_vertices, structure):
-    """
-    make diagram given input particles,
-    the number of vertices expected &
-    the number of particles we want out at each vertex (randomly chosen)
-    """
-    p_out = [p_in]
-    p = p_in
-    for i, n in enumerate(structure):
-        constraint = vertex_conservation(p)
-        allowed_pairs = vertex_outputs(p, constraint, n)
-        p = random.choice(allowed_pairs)
-        p_out.append(p)
+    def _vertex_outputs(self, number_of_outputs=2) -> list:
+        """
+        get the outputs from a vertex subject to:
+        * no trivial vertices: output != input,
+        * keep invariants invariant,
+        * return required number of particles.
+        """
+        tuples = combine(PARTICLE_MAP.values(), number_of_outputs)
+        allowed_tuples = []
+        for t in tuples:
+            if self._legal_vertex(t):
+                allowed_tuples.append(t)
 
-    return p_out
+        if allowed_tuples:
+            return allowed_tuples
+
+        raise RuntimeError("{} can't generate {} legal outputs"
+                           .format([t for t in tuples], number_of_outputs))
+
+    def make_diagram(self) -> list:
+        """
+        make diagram given input particles,
+        the number of vertices expected
+        & the number of particles we want out at each vertex
+        """
+        vertex_particles = [self._particles]
+        for n_out in self._structure:
+            allowed_tuples = self._vertex_outputs(n_out)
+            vertex_particles.append(random.choice(allowed_tuples))
+            self._out = vertex_particles[-1]
+
+        self._vertex_particles = vertex_particles
+        return vertex_particles
+
+    def make_tex(self):
+        if not self._vertex_particles:
+            self.make_diagram()
+        raise NotImplementedError
 
 def class_list():
-    """Misleading, this returns all particle classes"""
     particle_list = []
     for attr in dir(particle):
         x = getattr(particle, attr)
         if isinstance(x, type):
-            particle_list.append(x)
+            try:
+                x()
+                particle_list.append(x)
+            except TypeError:
+                continue
     return particle_list
 
 if __name__ == "__main__":
     particles = (particle.Electron(), particle.Positron())
-    print(particles)
 
-    vertices = 2 # no. of vertices
-    structure = [1, 2] # no of particles output from each vertex
+    structure = [1, 2] # number of particles output from each vertex
 
-    diagram = make_diagram(particles, vertices, structure)
-    #for i, v in enumerate(diagram):
-    #    print('Vertex {}:'.format(i))
-    #    print(p_names(v))
+    interaction = Interaction(particles, structure)
+    diagram = interaction.make_diagram()
+    for i, vertex in enumerate(diagram):
+        print('Vertex {}: {}'.format(i, [p.symbol for p in vertex]))
+
