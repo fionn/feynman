@@ -5,9 +5,6 @@ from abc import ABC, abstractmethod
 
 class Particle(ABC):
 
-    Position = namedtuple("Position", ["t", "x", "y", "z"])
-    Momentum = namedtuple("Momentum", ["t", "x", "y", "z"])
-
     def __init__(self):
         self.name = None
         self.symbol = None
@@ -28,15 +25,6 @@ class Particle(ABC):
     def _instantiated(self):
         # This prevents base classes from accidental
         # initialisation
-        pass
-
-    # Not sure what to do here, or if we care.
-    #@abstractmethod
-    def position(self, frame):
-        pass
-
-    #@abstractmethod
-    def momentum(self, frame):
         pass
 
 class Antiparticle(Particle):
