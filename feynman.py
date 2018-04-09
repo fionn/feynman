@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import random
-from itertools import combinations_with_replacement as combine
+import abc
 from collections import namedtuple
 from typing import Tuple
+from itertools import combinations_with_replacement as combine
 import particle
 
 PARTICLE_MAP = particle.Factory.particle_instances
@@ -89,11 +90,12 @@ def class_list():
                 particle_list.append(x)
             except TypeError:
                 continue
+    particle_list.remove(abc.ABC)
+    particle_list.remove(particle.Factory)
     return particle_list
 
 if __name__ == "__main__":
     particles = (particle.Electron(), particle.Positron())
-
     structure = [1, 2] # number of particles output from each vertex
 
     interaction = Interaction(particles, structure)

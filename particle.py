@@ -13,6 +13,7 @@ class Particle(ABC):
         self.mass = None
         self.baryon = None
         self.lepton = None
+        self.tex = None
         # The default is for particles to be their own antiparticle
         self.antiparticle = self.__class__
         #self.parity = None
@@ -20,6 +21,11 @@ class Particle(ABC):
 
     def __repr__(self):
         return self.__class__.__name__
+
+    @staticmethod
+    def overbar(string):
+        overline = "\u0305"
+        return overline.join(string) + overline
 
     @abstractmethod
     def _instantiated(self):
@@ -53,8 +59,8 @@ class Photon(GaugeBoson):
         self.symbol = "γ"
         self.charge = 0
         self.mass = 0
-        self.parity = -1
-        self.c_parity = - 1
+        #self.parity = -1
+        #self.c_parity = - 1
 
     def _instantiated(self):
         pass
@@ -199,8 +205,7 @@ class ElectronAntiNeutrino(Neutrino, Antiparticle):
     def __init__(self):
         super().__init__(Electron())
         self.name = "electron antinutrino"
-        # TODO: overbar
-        self.symbol = "bar " + self.symbol
+        self.symbol = self.overbar(self.symbol)
         self._antiparticle()
 
     def _instantiated(self):
@@ -220,8 +225,7 @@ class MuonAntiNeutrino(Neutrino, Antiparticle):
     def __init__(self):
         super().__init__(Muon())
         self.name = "muon antinutrino"
-        # TODO: overbar
-        self.symbol = "bar " + self.symbol
+        self.symbol = self.overbar(self.symbol)
         self._antiparticle()
 
     def _instantiated(self):
