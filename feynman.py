@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import random
-import abc
 from collections import namedtuple
 from typing import Tuple
 from itertools import combinations_with_replacement as combine
 import particle
 
-PARTICLE_MAP = particle.Factory.particle_instances
+class InteractionError(RuntimeError):
+    pass
 
 class Interaction:
 
@@ -33,66 +33,52 @@ class Interaction:
                     return True
         return False
 
-    def _legal_vertex(self, t: tuple) -> bool:
+    def _legal_vertex(self, t: tuple) -> None:
         if self._vertex_invariants(t) != self._invariants:
-            return False
+            raise InteractionError("{} != {} for {}"
+                                   .format(self._vertex_invariants(t),
+                                           self._invariants, t))
         if self._violates_landau_yang(t):
-            return False
+            raise InteractionError("{} violates Landau-Yang".format(t))
         # TODO: pair production/annihilation
-        return True
 
-    def _vertex_outputs(self, number_of_outputs=2) -> list:
+    def _vertex_outputs(self, number_of_outputs: int = 2) -> list:
         """
         get the outputs from a vertex subject to:
         * no trivial vertices: output != input,
         * keep invariants invariant,
         * return required number of particles.
         """
-        tuples = combine(PARTICLE_MAP.values(), number_of_outputs)
+        particle_instances = [x() for x in particle.PARTICLES]
+        tuples = combine(particle_instances, number_of_outputs)
         allowed_tuples = []
         for t in tuples:
-            if self._legal_vertex(t):
+            try:
+                self._legal_vertex(t)
                 allowed_tuples.append(t)
+            except InteractionError:
+                pass
 
         if allowed_tuples:
             return allowed_tuples
 
-        raise RuntimeError("{} can't generate {} legal outputs"
-                           .format([t for t in tuples], number_of_outputs))
+        raise InteractionError("{} can't generate {} legal outputs"
+                               .format([t for t in tuples], number_of_outputs))
 
     def make_diagram(self) -> list:
-        """
-        make diagram given input particles,
-        the number of vertices expected
-        & the number of particles we want out at each vertex
-        """
         vertex_particles = [self._particles]
         for n_out in self._structure:
             allowed_tuples = self._vertex_outputs(n_out)
             vertex_particles.append(random.choice(allowed_tuples))
             self._out = vertex_particles[-1]
 
-        self._vertex_particles = vertex_particles
+        self._vertex_particles = vertex_particles # type: ignore
         return vertex_particles
 
     def make_tex(self):
         if not self._vertex_particles:
             self.make_diagram()
         raise NotImplementedError
-
-def class_list():
-    particle_list = []
-    for attr in dir(particle):
-        x = getattr(particle, attr)
-        if isinstance(x, type):
-            try:
-                x()
-                particle_list.append(x)
-            except TypeError:
-                continue
-    particle_list.remove(abc.ABC)
-    particle_list.remove(particle.Factory)
-    return particle_list
 
 if __name__ == "__main__":
     particles = (particle.Electron(), particle.Positron())

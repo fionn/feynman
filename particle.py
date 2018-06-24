@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from collections import namedtuple
 from abc import ABC, abstractmethod
 
 class Particle(ABC):
@@ -26,12 +25,6 @@ class Particle(ABC):
     def overbar(string):
         overline = "\u0305"
         return overline.join(string) + overline
-
-    @abstractmethod
-    def _instantiated(self):
-        # This prevents base classes from accidental
-        # initialisation
-        pass
 
 class Antiparticle(Particle):
 
@@ -62,9 +55,6 @@ class Photon(GaugeBoson):
         #self.parity = -1
         #self.c_parity = - 1
 
-    def _instantiated(self):
-        pass
-
 class Z(GaugeBoson):
 
     def __init__(self):
@@ -73,9 +63,6 @@ class Z(GaugeBoson):
         self.symbol = "Z^0"
         self.charge = 0
         self.mass = 91.19 # GeV
-
-    def _instantiated(self):
-        pass
 
 class WPlus(GaugeBoson):
 
@@ -87,9 +74,6 @@ class WPlus(GaugeBoson):
         self.mass = 80.39
         self.antiparticle = WMinus
 
-    def _instantiated(self):
-        pass
-
 class WMinus(GaugeBoson):
 
     def __init__(self):
@@ -99,9 +83,6 @@ class WMinus(GaugeBoson):
         self.charge = -1
         self.mass = 80.39
         self.antiparticle = WPlus
-
-    def _instantiated(self):
-        pass
 
 class Fermion(Particle):
 
@@ -134,9 +115,6 @@ class Electron(Lepton):
     def neutrino(self):
         return ElectronNeutrino
 
-    def _instantiated(self):
-        pass
-
 class Positron(Electron, Antiparticle):
 
     def __init__(self):
@@ -144,9 +122,6 @@ class Positron(Electron, Antiparticle):
         self.name = "positron"
         self.symbol = "e^+"
         self._antiparticle()
-
-    def _instantiated(self):
-        pass
 
 class Muon(Lepton):
 
@@ -162,9 +137,6 @@ class Muon(Lepton):
     def neutrino(self):
         return MuonNeutrino
 
-    def _instantiated(self):
-        pass
-
 class AntiMuon(Muon, Antiparticle):
 
     def __init__(self):
@@ -172,9 +144,6 @@ class AntiMuon(Muon, Antiparticle):
         self.name = "antimuon"
         self.symbol = "µ^+"
         self._antiparticle()
-
-    def _instantiated(self):
-        pass
 
 class Neutrino(Lepton):
 
@@ -197,9 +166,6 @@ class ElectronNeutrino(Neutrino):
         super().__init__(Electron())
         self.antiparticle = ElectronAntiNeutrino
 
-    def _instantiated(self):
-        pass
-
 class ElectronAntiNeutrino(Neutrino, Antiparticle):
 
     def __init__(self):
@@ -208,17 +174,11 @@ class ElectronAntiNeutrino(Neutrino, Antiparticle):
         self.symbol = self.overbar(self.symbol)
         self._antiparticle()
 
-    def _instantiated(self):
-        pass
-
 class MuonNeutrino(Neutrino):
 
     def __init__(self):
         super().__init__(Muon())
         self.antiparticle = MuonAntiNeutrino
-
-    def _instantiated(self):
-        pass
 
 class MuonAntiNeutrino(Neutrino, Antiparticle):
 
@@ -228,39 +188,10 @@ class MuonAntiNeutrino(Neutrino, Antiparticle):
         self.symbol = self.overbar(self.symbol)
         self._antiparticle()
 
-    def _instantiated(self):
-        pass
-
-class Factory:
-
-    _boson_map = {"photon": Photon,
-                  "Z": Z,
-                  "W^+": WPlus,
-                  "W^-": WMinus,
-                 }
-
-    _fermion_map = {"electron": Electron,
-                    "positron": Positron,
-                    "muon": Muon,
-                    "antimuon": AntiMuon,
-                    "electron neutrino": ElectronNeutrino,
-                    "electron antineutrino": ElectronAntiNeutrino,
-                    "muon neutrino": MuonNeutrino,
-                    "muon antineutrino": MuonAntiNeutrino,
-                   }
-
-    _particle_map = {**_boson_map, **_fermion_map}
-    particle_instances = {key: value() for key, value in _particle_map.items()}
-
-    @staticmethod
-    def create(name):
-        try:
-            return Factory._particle_map[name]
-        except KeyError:
-            raise NotImplementedError("{}s don't exist yet".format(name))
-
-if __name__ == "__main__":
-
-    e = Electron()
-    print(isinstance(e.antiparticle(), Positron))
+BOSONS = [Photon, Z, WPlus, WMinus]
+LEPTONS = [Electron, Positron,
+           Muon, AntiMuon,
+           ElectronNeutrino, ElectronAntiNeutrino,
+           MuonNeutrino, MuonAntiNeutrino]
+PARTICLES = BOSONS + LEPTONS # type: ignore
 
