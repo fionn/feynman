@@ -75,9 +75,7 @@ class Interaction:
         self._vertex_particles = vertex_particles # type: ignore
         return vertex_particles
 
-    def make_tex(self):
-        if not self._vertex_particles:
-            self.make_diagram()
+    def make_tex(self) -> None:
         raise NotImplementedError
 
 if __name__ == "__main__":
